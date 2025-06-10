@@ -913,5 +913,478 @@ document.addEventListener('DOMContentLoaded', function() {
     commentsList.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 });
+    <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sağlık Asistanı Chatbot</title>
+    <style>
+        /* Chatbot stilleri mevcut site stillerine uygun */
+        .chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .chatbot-container.active {
+            display: flex;
+        }
+
+        .chatbot-header {
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .close-chatbot {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .bot-avatar {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            background-color: white;
+            padding: 12px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .quick-reply {
+            background-color: #e8f5e8;
+            color: #2E7D32;
+            border: 1px solid #4CAF50;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-reply:hover {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .chat-input-container {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #eee;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .chat-input input:focus {
+            border-color: #4CAF50;
+        }
+
+        .send-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .send-button:hover {
+            background-color: #388E3C;
+        }
+
+        .send-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Chatbot açma butonu */
+        .chatbot-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            z-index: 999;
+        }
+
+        .chatbot-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .chatbot-toggle.hidden {
+            display: none;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: none;
+            padding: 10px 0;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            animation: typing 1.5s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .chatbot-container {
+                width: 90vw;
+                height: 70vh;
+                bottom: 10px;
+                right: 5vw;
+            }
+            
+            .chatbot-toggle {
+                bottom: 15px;
+                right: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Chatbot Açma Butonu -->
+    <button class="chatbot-toggle" id="chatbotToggle">
+        💬
+    </button>
+
+    <!-- Chatbot Container -->
+    <div class="chatbot-container" id="chatbotContainer">
+        <div class="chatbot-header">
+            <h3>🏥 Sağlık Asistanı</h3>
+            <button class="close-chatbot" id="closeChatbot">×</button>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="bot-avatar">SA</div>
+                <div class="message-content">
+                    Merhaba! Ben Sağlık Asistanınızım. Size sağlıklı yaşam, beslenme, egzersiz ve genel sağlık konularında yardımcı olabilirim. Nasıl yardımcı olabilirim?
+                    <div class="quick-replies">
+                        <div class="quick-reply" data-reply="Sağlıklı beslenme önerileri">🥗 Beslenme</div>
+                        <div class="quick-reply" data-reply="Egzersiz programı">💪 Egzersiz</div>
+                        <div class="quick-reply" data-reply="Stres yönetimi">😌 Stres</div>
+                        <div class="quick-reply" data-reply="Uyku kalitesi">😴 Uyku</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="message bot">
+                    <div class="bot-avatar">SA</div>
+                    <div class="message-content">
+                        <div class="typing-dots">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Mesajınızı yazın..." maxlength="500">
+                <button class="send-button" id="sendButton">📤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class HealthChatbot {
+            constructor() {
+                this.chatbotToggle = document.getElementById('chatbotToggle');
+                this.chatbotContainer = document.getElementById('chatbotContainer');
+                this.closeChatbot = document.getElementById('closeChatbot');
+                this.chatMessages = document.getElementById('chatMessages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.typingIndicator = document.getElementById('typingIndicator');
+                
+                this.initEventListeners();
+                this.initResponses();
+            }
+
+            initEventListeners() {
+                this.chatbotToggle.addEventListener('click', () => this.openChatbot());
+                this.closeChatbot.addEventListener('click', () => this.closeChatbotWindow());
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+
+                // Quick replies
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('quick-reply')) {
+                        const reply = e.target.getAttribute('data-reply');
+                        this.messageInput.value = reply;
+                        this.sendMessage();
+                    }
+                });
+            }
+
+            initResponses() {
+                this.responses = {
+                    // Beslenme
+                    'beslenme': {
+                        keywords: ['beslenme', 'diyet', 'yemek', 'besin', 'vitamin', 'mineral', 'kilo', 'obezite'],
+                        response: "🥗 Sağlıklı beslenme için önerilerim:\n\n• Günde 5 porsiyon meyve-sebze tüketin\n• Tam tahıllı ürünleri tercih edin\n• Bol su için (günde 8-10 bardak)\n• İşlenmiş gıdalardan kaçının\n• Omega-3 açısından zengin balık tüketin\n\nHangi konuda daha detaylı bilgi istiyorsunuz?"
+                    },
+                    
+                    // Egzersiz
+                    'egzersiz': {
+                        keywords: ['egzersiz', 'spor', 'antrenman', 'fitness', 'koşu', 'yürüyüş', 'kas', 'kardiyovasküler'],
+                        response: "💪 Egzersiz önerilerim:\n\n• Haftada en az 150 dakika orta tempolu egzersiz\n• Haftada 2-3 gün kas güçlendirme\n• Günde 30 dakika yürüyüş\n• Egzersize yavaş başlayın, kademeli artırın\n• Isınma ve soğuma egzersizlerini ihmal etmeyin\n\nHangi tür egzersiz yapmak istersiniz?"
+                    },
+
+                    // Stres
+                    'stres': {
+                        keywords: ['stres', 'anksiyete', 'endişe', 'gerginlik', 'rahatlama', 'meditasyon'],
+                        response: "😌 Stres yönetimi için önerilerim:\n\n• Derin nefes egzersizleri yapın\n• Düzenli meditasyon yapın\n• Doğada zaman geçirin\n• Hobi edinin\n• Sosyal bağlantılarınızı güçlendirin\n• Yeterli uyku alın\n\nHangi teknik sizi daha çok ilgilendiriyor?"
+                    },
+
+                    // Uyku
+                    'uyku': {
+                        keywords: ['uyku', 'uykusuzluk', 'insomni', 'yorgunluk', 'dinlenme'],
+                        response: "😴 Kaliteli uyku için önerilerim:\n\n• Düzenli uyku saatleri belirleyin\n• Yatak odanızı karanlık ve serin tutun\n• Yatmadan 2 saat önce elektronik cihaz kullanmayın\n• Rahatlatıcı aktiviteler yapın\n• Kafein ve alkol tüketimini sınırlayın\n\nUyku probleminiz hakkında daha fazla bilgi verebilir misiniz?"
+                    },
+
+                    // Su
+                    'su': {
+                        keywords: ['su', 'hidrasyon', 'susuzluk', 'sıvı'],
+                        response: "💧 Su tüketimi hakkında:\n\n• Günde en az 8-10 bardak su için\n• Susuzluk hissetmeden su için\n• Egzersiz öncesi ve sonrası ekstra su alın\n• Meyve ve sebzeler de sıvı ihtiyacını karşılar\n• İdrarın rengi hidrasyon durumunuzu gösterir\n\nBaşka sorularınız var mı?"
+                    },
+
+                    // Bağışıklık
+                    'bağışıklık': {
+                        keywords: ['bağışıklık', 'immün', 'hastalık', 'grip', 'soğuk algınlığı', 'enfeksiyon'],
+                        response: "🛡️ Bağışıklık sistemi için önerilerim:\n\n• C vitamini açısından zengin besinler tüketin\n• Düzenli egzersiz yapın\n• Stres seviyenizi düşük tutun\n• Yeterli uyku alın\n• Probiyotik içeren gıdalar tüketin\n• El hijyeninize dikkat edin\n\nHangi konuda daha detaylı bilgi istersiniz?"
+                    },
+
+                    // Genel
+                    'genel': {
+                        keywords: ['merhaba', 'selam', 'nasılsın', 'teşekkür', 'sağol'],
+                        response: "Merhaba! Size yardımcı olmaktan mutluluk duyarım. Sağlıklı yaşam konularında sorularınızı bekliyorum! 😊"
+                    }
+                };
+            }
+
+            openChatbot() {
+                this.chatbotContainer.classList.add('active');
+                this.chatbotToggle.classList.add('hidden');
+                this.messageInput.focus();
+            }
+
+            closeChatbotWindow() {
+                this.chatbotContainer.classList.remove('active');
+                this.chatbotToggle.classList.remove('hidden');
+            }
+
+            async sendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message) return;
+
+                // Kullanıcı mesajını ekle
+                this.addMessage(message, 'user');
+                this.messageInput.value = '';
+
+                // Typing indicator göster
+                this.showTyping();
+
+                // Bot yanıtını bekle ve gönder
+                setTimeout(() => {
+                    const response = this.generateResponse(message);
+                    this.hideTyping();
+                    this.addMessage(response, 'bot');
+                }, 1000 + Math.random() * 1000);
+            }
+
+            addMessage(content, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+
+                if (sender === 'bot') {
+                    messageDiv.innerHTML = `
+                        <div class="bot-avatar">SA</div>
+                        <div class="message-content">${content.replace(/\n/g, '<br>')}</div>
+                    `;
+                } else {
+                    messageDiv.innerHTML = `
+                        <div class="message-content">${content}</div>
+                    `;
+                }
+
+                // Typing indicator'dan önce ekle
+                this.chatMessages.insertBefore(messageDiv, this.typingIndicator);
+                this.scrollToBottom();
+            }
+
+            showTyping() {
+                this.typingIndicator.style.display = 'block';
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                this.typingIndicator.style.display = 'none';
+            }
+
+            generateResponse(message) {
+                const lowerMessage = message.toLowerCase();
+                
+                // Anahtar kelime eşleştirme
+                for (const [category, data] of Object.entries(this.responses)) {
+                    for (const keyword of data.keywords) {
+                        if (lowerMessage.includes(keyword)) {
+                            return data.response;
+                        }
+                    }
+                }
+
+                // Varsayılan yanıt
+                return "Anlayamadığım bir konu hakkında soru sordunuz. Size şu konularda yardımcı olabilirim:\n\n🥗 Sağlıklı beslenme\n💪 Egzersiz ve fitness\n😌 Stres yönetimi\n😴 Uyku kalitesi\n💧 Su tüketimi\n🛡️ Bağışıklık sistemi\n\nHangi konuda bilgi almak istersiniz?";
+            }
+
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+                }, 100);
+            }
+        }
+
+        // Chatbot'u başlat
+        document.addEventListener('DOMContentLoaded', () => {
+            new HealthChatbot();
+        });
+    </script>
+
 </body>
 </html>
